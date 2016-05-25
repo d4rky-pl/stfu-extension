@@ -4,7 +4,7 @@
   "name": "Shut Up Already!",
   "short_name": "STFU Already!",
   "author": "Michał Matyas",
-  "version": "1.2",
+  "version": "2.0",
 
   "description": "This extension mutes all Chrome tabs by default. Great tool against autoplayed videos and ads!",
   "icons": {
@@ -14,10 +14,10 @@
     "scripts": ["background.js"]
   },
   "browser_action": {
-    "default_icon": "audio-muted.png",
-    "default_popup": "popup.html" 
+    "default_icon": "audio-muted.png"
   },
+  "options_page": "options.html",
   "permissions": [
-    "tabs", "storage"
+    "tabs", "storage", "contextMenus"
   ]
 }

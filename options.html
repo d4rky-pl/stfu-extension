@@ -1,0 +1,269 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Shut Up Already! - Settings</title>
+    <style type="text/css">
+      * { box-sizing: border-box; }
+      @font-face {
+        font-family: 'robotoregular';
+        src: url('roboto.woff') format('woff');
+        font-weight: normal;
+        font-style: normal;
+      }
+
+      body {
+        margin: 0;
+        font-family: robotoregular, Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+        font-size: 15px;
+      }
+
+      header {
+        background: #388E3C;
+        color: white;
+        padding: 10px;
+        margin-bottom: 5px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+
+      header.muted {
+        background: #DD2C00;
+      }
+
+      .version-number {
+        opacity: 0.5;
+        float: right;
+      }
+
+      .panel, .button {
+        background: #fff;
+        border: 0;
+        box-shadow: 0 0 2px rgba(0,0,0,.12),0 2px 2px rgba(0,0,0,.2);        
+      }
+
+      .panel-center {
+        margin: 20px auto;
+        max-width: 32em;
+      }
+
+      .button {
+        padding: 10px;
+        outline: 0;
+        border: 0;
+        text-transform: uppercase;
+      }
+
+      button:hover, .button:hover {
+        outline: 0;
+      }
+
+      button:active, .button:active {
+        outline: 0;
+        box-shadow: 0 5px 10px rgba(0,0,0,.19),0 3px 3px rgba(0,0,0,.23);
+        background: #ccc;
+      }
+
+      button.mute {
+        color: #388E3C;
+      }
+
+      button.unmute {
+        color: #DD2C00;
+      }
+
+      .button--small {
+        padding: 3px 5px;
+      }
+
+      .button--red {
+        background: #DD2C00;
+        color: #fff;
+      }
+
+      .button--wide {
+        width: 100%;
+      }
+
+      .menu-item {
+        padding: 10px;
+      }
+
+      .explanation {
+        font-size: 0.75em;
+        color: #888;
+        display: block;
+      }
+
+      label .explanation {
+        padding-left: 22px;
+      }
+
+      .settings--simple .rule-set__mode {
+        display: none;
+      }
+
+      .rule-set {
+        width: 100%;
+      }
+
+      .rule-set th {
+        text-align: left;
+        color: #888;
+      }
+
+      .rule-set th, .rule-set td {
+        padding: 0 5px;
+      }
+
+      .rule-set__action select {
+        font-size: 0.8em;
+        -webkit-appearance: none;
+        border: 0;
+        background: #fff;
+        padding: 4px 18px 4px 0;
+        border-bottom: 1px solid rgba(0,0,0,.12);
+        display: block;
+        border-radius: 0;
+      }
+
+      .rule-set__action label {
+        position: relative;
+        display: block;
+      }
+
+      .rule-set__action label:after {
+        position: absolute;
+        top: 0.75em;
+        right: 0.5em;
+        width: 0;
+        height: 0;
+        padding: 0;
+        content: '';
+        border-left: .25em solid transparent;
+        border-right: .25em solid transparent;
+        border-top: .375em solid #888;
+        pointer-events: none;
+      }
+
+      .rule-set__url {
+        width: 100%;
+      }
+
+      .rule-set__buttons {
+        text-align: right;
+      }
+
+      .input-text, .input-textarea {
+        font-size: 0.8em;
+        border: none;
+        border-bottom: 1px solid rgba(0,0,0,.12);
+        display: block;
+        margin: 0;
+        padding: 4px 0;
+        width: 100%;
+        background: 0 0;
+        text-align: left;
+        color: inherit;
+      }
+
+      h1 {
+        font-weight: normal;
+        font-size: 1em;
+        margin: 0 0 10px 0;
+      }
+
+      .input-textarea {
+        height: 10em;
+      }
+
+      hr {
+        border: 0;
+        border-top: 1px solid #e0e0e0;
+        margin: 10px;
+      }
+    </style>
+    <script type="text/javascript" src="zepto.min.js"></script>
+    <script type="text/javascript" src="options.js"></script>
+  </head>
+  <body class="settings settings--simple">
+  <div class="panel panel-center">
+    <header>
+      Shut Up Already!
+      <span class="version-number">2.0</small>
+    </header>
+
+    <div class="panel-content">
+      <div class="menu">
+        <div class="menu-item">
+          <label>
+            <input type="checkbox" id="mute-tabs-by-default">
+            Keep muted state of the opening tab
+            <span class="explanation">
+              This means that if you mute a tab then any tab opened from this one (either via link or via "Open New Tab" when this one is active) will also be muted.
+            </span>
+          </label>
+        </div>
+        <hr>
+        <div class="menu-item">
+          <h1>Blacklist
+            <span class="explanation">
+              All URLs on this list will be automatically muted. Separate URLs with new line.<br>You can use * as wildcard.
+            </span>
+            </h1>
+          <textarea id="blacklist" class="input-textarea"></textarea>
+        </div>
+        <hr>
+        <div class="menu-item">
+          <h1>Whitelist
+            <span class="explanation">
+              All URLs on this list will never be muted by this extension. Separate URLs with new line.<br>You can use * as wildcard.
+            </span>
+            </h1>
+          <textarea id="whitelist" class="input-textarea"></textarea>
+        </div>
+        <!-- TODO ;)
+        <div class="menu-item">
+          <table class="rule-set">
+            <thead>
+              <tr>
+                <th class="rule-set__action">Action</th>
+                <th class="rule-set__url">URL</th>
+                <th class="rule-set__mode">Mode</th>
+                <th class="rule-set__buttons"></th>
+              </tr>
+            </thead>
+            <tbody class="rule-set__rule-container">
+              <tr class="rule-set__rule rule-set__rule--template">
+                <td class="rule-set__action">
+                  <label>
+                    <select name="action" id="action">
+                      <option value="whitelist">Always unmute</option>
+                      <option value="blacklist">Always mute</option>
+                    </select>
+                  </label>  
+                </td>
+                <td class="rule-set__url">
+                  <input type="text" class="input-text">
+                </td>
+                <td class="rule-set__mode">
+                  <select name="action" id="action">
+                    <option value="wildcard">Wildcard</option>
+                    <option value="regex">Regex</option>
+                  </select>
+                </td>
+                <td class="rule-set__buttons">
+                  <button class="button button--small button--red">X</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        -->
+        <div class="menu-item">
+          <button id="save-changes" class="button button--wide">Save changes</button>
+        </div>
+      </div>
+    </div>
+    </div>
+  </body>
+</html>
+
