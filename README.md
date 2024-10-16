@@ -9,6 +9,7 @@ your browser until you explicitly expect them.
 
 ## Changelog
 
+- 2.2.0: Rewrite service worker to prevent issues with MV3 being garbage standard that keeps glitching and killing things in the background
 - 2.1.0: Corporate ad-driven garbage bullshit requirement update (converted the extension from manifest v2 to v3)
 - 2.0.1: Update privacy practices
 - 2.0: Removed popup, added options page and context menu instead. Clicking on mute icon will now toggle mute status.
