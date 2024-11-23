@@ -1,7 +1,8 @@
 // options.js
 
 chrome.storage.sync.get(null, function (config) {
-  $('#mute-tabs-by-default').prop('checked', config.muteTabsByDefault);
+  $('#keep-muted-state').prop('checked', config.keepMutedState);
+  $('#mute-by-default').prop('checked', config.muteByDefault);
 
   ruleSet = config.ruleSet || [];
 
@@ -27,11 +28,17 @@ chrome.storage.sync.get(null, function (config) {
       if(url.length > 0) { ruleSet.push({ mute: true, url: url }); }
     });
 
+    var keepMutedState = $('#keep-muted-state').prop('checked');
+    var muteByDefault = $('#mute-by-default').prop('checked');
+
     chrome.storage.sync.set({
       ruleSet: ruleSet,
-      muteTabsByDefault: $('#mute-tabs-by-default').prop('checked')
+      keepMutedState: keepMutedState,
+      muteByDefault: muteByDefault
     });
 
-    chrome.runtime.sendMessage({ type: 'UPDATE_RULES', ruleSet: ruleSet, muteTabsByDefault: $('#mute-tabs-by-default').prop('checked') });
+    chrome.runtime.sendMessage({
+      type: 'UPDATE_RULES', ruleSet: ruleSet, muteByDefault: muteByDefault, keepMutedState: keepMutedState
+    });
   });
 });

@@ -9,6 +9,12 @@ your browser until you explicitly expect them.
 
 ## Changelog
 
+- 2.3.0:
+  - Fix context menu actions
+  - There is a major change in the behaviour of the "Keep muted state of the opening tab" flag. Previously due to a
+    mistake two separate features have been merged together - keeping muted state and muting all tabs by default.
+    This has now been fixed and you can set the two settings separately. Existing users will have them both enabled if
+    they had the feature enabled before.
 - 2.2.0: Rewrite service worker to prevent issues with MV3 being garbage standard that keeps glitching and killing things in the background
 - 2.1.0: Corporate ad-driven garbage bullshit requirement update (converted the extension from manifest v2 to v3)
 - 2.0.1: Update privacy practices

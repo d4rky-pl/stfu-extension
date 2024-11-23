@@ -31,7 +31,6 @@ const setIcon = async (tab, muted) => {
 
     muted = tab.mutedInfo.muted;
   }
-
   return chrome.action.setIcon({ path: ICONS[muted], tabId: tab.id });
 }
 
@@ -40,40 +39,33 @@ const setMute = (tab, muted) => {
     muted = true;
   }
 
-  return Promise.all([
-    setIcon(tab, muted),
-    chrome.tabs.update(tab.id, { muted: muted })
-  ])
+  return chrome.tabs.update(tab.id, { muted: muted })
 }
 
 const toggleMute = (tab) => setMute(tab, !tab.mutedInfo.muted)
+
 const eachTab = (fn) => chrome.tabs.query({}, (tabs) => tabs.forEach(fn))
+
 const currentTab = async () => {
   const tabs = await chrome.tabs.query({active: true, currentWindow: true})
   return tabs[0]
 }
+
 const initialAction = async (tab) => {
   const config = await chrome.storage.sync.get(null)
   if (tab.url) {
     const match = matchTab(config.ruleSet, tab.url)
-    console.log("initialAction details for ", tab.url)
+
     if (match !== null) {
       setMute(tab, match)
+    } else if (tab.openerTabId && config.keepMutedState) {
+      const openerTab = await chrome.tabs.get(tab.openerTabId)
+      setMute(tab, openerTab.mutedInfo.muted)
+    } else if (config.muteByDefault) {
+      setMute(tab, true)
     } else {
-      if (tab.openerTabId) {
-        const openerTab = await chrome.tabs.get(tab.openerTabId)
-        const muted = config.muteTabsByDefault && openerTab.mutedInfo.muted
-        setMute(tab, muted)
-      } else if (config.muteTabsByDefault) {
-        setMute(tab, true)
-      } else {
-        setIcon(tab)
-      }
+      setIcon(tab)
     }
-  } else if (config.muteTabsByDefault) {
-    setMute(tab, true)
-  } else {
-    setIcon(tab)
   }
 }
 
@@ -118,35 +110,46 @@ chrome.runtime.onInstalled.addListener((details) => {
     contexts: ["action"]
   });
 
-  chrome.contextMenus.onClicked.addListener(function(info, tab) {
-    if (info.menuItemId === "muteAllTabs") {
-      eachTab(tab => setMute(tab, true))
-    } else if (info.menuItemId === "unmuteAllTabs") {
-      eachTab(tab => setMute(tab, false))
-    } else if (info.menuItemId === "muteOtherTabs") {
-      currentTab().then(activeTab => eachTab(tab => setMute(tab, tab.id != activeTab.id)))
-    } else if (info.menuItemId === "unmuteOtherTabs") {
-      currentTab().then(activeTab => eachTab(tab => setMute(tab, tab.id == activeTab.id)))
-    } else if (info.menuItemId === "blacklistDomain") {
-      currentTab().then(activeTab => {
-        chrome.storage.sync.get('ruleSet', function(config) {
-          var ruleSet = config.ruleSet;
-          var url = activeTab.url.split('/');
-          ruleSet.unshift({ mute: true, url: url[0] + "//" + url[2] + "*" });
-          chrome.storage.sync.set({ ruleSet: ruleSet });
-        });
+  chrome.storage.sync.get(null, function(config) {
+    // migrate from previous setting
+    if (config.muteTabsByDefault === true || config.muteTabsByDefault === false) {
+      chrome.storage.sync.set({
+        muteByDefault: config.muteTabsByDefault,
+        keepMutedState: config.muteTabsByDefault
       });
-    } else if (info.menuItemId === "whitelistDomain") {
-      currentTab().then(activeTab => {
-        chrome.storage.sync.get('ruleSet', function(config) {
-          var ruleSet = config.ruleSet;
-          var url = activeTab.url.split('/');
-          ruleSet.unshift({ mute: false, url: url[0] + "//" + url[2] + "*" });
-          chrome.storage.sync.set({ ruleSet: ruleSet });
-        });
-      });
+      chrome.storage.sync.remove('muteTabsByDefault');
     }
-  });
+  })
+});
+
+chrome.contextMenus.onClicked.addListener(function(info, tab) {
+  if (info.menuItemId === "muteAllTabs") {
+    eachTab(tab => setMute(tab, true))
+  } else if (info.menuItemId === "unmuteAllTabs") {
+    eachTab(tab => setMute(tab, false))
+  } else if (info.menuItemId === "muteOtherTabs") {
+    currentTab().then(activeTab => eachTab(tab => setMute(tab, tab.id != activeTab.id)))
+  } else if (info.menuItemId === "unmuteOtherTabs") {
+    currentTab().then(activeTab => eachTab(tab => setMute(tab, tab.id == activeTab.id)))
+  } else if (info.menuItemId === "blacklistDomain") {
+    currentTab().then(activeTab => {
+      chrome.storage.sync.get('ruleSet', function(config) {
+        var ruleSet = config.ruleSet || [];
+        var url = activeTab.url.split('/');
+        ruleSet.unshift({ mute: true, url: url[0] + "//" + url[2] + "*" });
+        chrome.storage.sync.set({ ruleSet: ruleSet });
+      });
+    });
+  } else if (info.menuItemId === "whitelistDomain") {
+    currentTab().then(activeTab => {
+      chrome.storage.sync.get('ruleSet', function(config) {
+        var ruleSet = config.ruleSet || [];
+        var url = activeTab.url.split('/');
+        ruleSet.unshift({ mute: false, url: url[0] + "//" + url[2] + "*" });
+        chrome.storage.sync.set({ ruleSet: ruleSet });
+      });
+    });
+  }
 });
 
 let justOpenedTabIds = []
@@ -154,23 +157,25 @@ chrome.tabs.onCreated.addListener(tab => {
   justOpenedTabIds.push(tab.id)
 });
 chrome.tabs.onUpdated.addListener((tabId, changedInfo, tab) => {
-  console.log('tabs.onUpdated', tab, changedInfo, 'just opened?', justOpenedTabIds.includes(tabId))
-  setIcon(tab);
+  const mutedInfo = changedInfo.mutedInfo || tab.mutedInfo
+
   if (changedInfo.url && tab.url !== changedInfo.url || justOpenedTabIds.includes(tabId)) {
     justOpenedTabIds.splice(justOpenedTabIds.indexOf(tabId), 1)
+    initialAction(tab);
+  } else if (mutedInfo) {
+    setIcon(tab, mutedInfo.muted)
+  } else if (changedInfo.status === 'complete') {
     initialAction(tab);
   }
 });
 chrome.tabs.onActivated.addListener(tab => setIcon(tab))
 
 chrome.action.onClicked.addListener(function(tab) {
-  console.log('action.onClicked', tab)
   toggleMute(tab);
 });
 chrome.runtime.onStartup.addListener(function() {
-  console.log('runtime.onStartup')
-  chrome.storage.sync.get({ muteTabsByDefault: true }, function(config) {
-    if (config.muteTabsByDefault === true) {
+  chrome.storage.sync.get({}, function(config) {
+    if (config.muteByDefault) {
       eachTab((tab) => setMute(tab, true))
     }
   });
