@@ -24,6 +24,9 @@ const matchTab = function(ruleSet, url) {
 }
 
 const setIcon = async (tab, muted) => {
+  if (!tab.url) {
+    return
+  }
   if (typeof muted == 'undefined') {
     if (!tab.mutedInfo) {
       tab = await chrome.tabs.get(tab.tabId);
@@ -35,11 +38,18 @@ const setIcon = async (tab, muted) => {
 }
 
 const setMute = (tab, muted) => {
+  if (!tab.url) {
+    return
+  }
+
   if (typeof muted == 'undefined') {
     muted = true;
   }
 
-  return chrome.tabs.update(tab.id, { muted: muted })
+  return Promise.all([
+    chrome.tabs.update(tab.id, { muted: muted }),
+    chrome.action.setIcon({ path: ICONS[muted], tabId: tab.id })
+  ])
 }
 
 const toggleMute = (tab) => setMute(tab, !tab.mutedInfo.muted)
@@ -51,16 +61,22 @@ const currentTab = async () => {
   return tabs[0]
 }
 
-const initialAction = async (tab) => {
+const initialAction = async (tab, initialLoad) => {
   const config = await chrome.storage.sync.get(null)
   if (tab.url) {
     const match = matchTab(config.ruleSet, tab.url)
 
     if (match !== null) {
       setMute(tab, match)
-    } else if (tab.openerTabId && config.keepMutedState) {
-      const openerTab = await chrome.tabs.get(tab.openerTabId)
-      setMute(tab, openerTab.mutedInfo.muted)
+    } else if (config.keepMutedState) {
+      if (tab.openerTabId) {
+        const openerTab = await chrome.tabs.get(tab.openerTabId)
+        setMute(tab, openerTab.mutedInfo.muted)
+      } else if (initialLoad) {
+        setMute(tab, config.muteByDefault)
+      } else {
+        setIcon(tab)
+      }
     } else if (config.muteByDefault) {
       setMute(tab, true)
     } else {
@@ -157,15 +173,17 @@ chrome.tabs.onCreated.addListener(tab => {
   justOpenedTabIds.push(tab.id)
 });
 chrome.tabs.onUpdated.addListener((tabId, changedInfo, tab) => {
-  const mutedInfo = changedInfo.mutedInfo || tab.mutedInfo
+  const muted = changedInfo.mutedInfo ? changedInfo.mutedInfo.muted : undefined
 
-  if (changedInfo.url && tab.url !== changedInfo.url || justOpenedTabIds.includes(tabId)) {
-    justOpenedTabIds.splice(justOpenedTabIds.indexOf(tabId), 1)
-    initialAction(tab);
-  } else if (mutedInfo) {
-    setIcon(tab, mutedInfo.muted)
-  } else if (changedInfo.status === 'complete') {
-    initialAction(tab);
+  if ((changedInfo.url && tab.url !== changedInfo.url) || changedInfo.status === 'loading') {
+    if (justOpenedTabIds.includes(tabId)) {
+      justOpenedTabIds.splice(justOpenedTabIds.indexOf(tabId), 1)
+      initialAction(tab, true);
+    } else {
+      initialAction(tab, false);
+    }
+  } else if (typeof muted !== 'undefined') {
+    setIcon(tab, muted)
   }
 });
 chrome.tabs.onActivated.addListener(tab => setIcon(tab))

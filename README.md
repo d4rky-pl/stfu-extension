@@ -9,6 +9,10 @@ your browser until you explicitly expect them.
 
 ## Changelog
 
+- 2.3.1:
+  - Fix the logic deciding when to mute tabs, including when to evaluate whitelists/blacklists and what "keep muted state"
+    means. This should fix the issue where tabs would not be muted or unmuted correctly compared to the previous version
+    of the extension.
 - 2.3.0:
   - Fix context menu actions
   - There is a major change in the behaviour of the "Keep muted state of the opening tab" flag. Previously due to a

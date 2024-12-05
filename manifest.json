@@ -4,7 +4,7 @@
   "name": "Shut Up Already!",
   "short_name": "STFU Already!",
   "author": "Michał Matyas",
-  "version": "2.3.0",
+  "version": "2.3.1",
 
   "description": "This extension mutes all tabs by default. Great tool against autoplayed videos and ads!",
   "icons": {
